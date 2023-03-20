@@ -1,0 +1,1564 @@
+import java_cup.runtime.*;
+import java.util.ArrayList;
+import java.util.Stack;
+import java.util.HashSet;
+import java.util.Objects;
+
+
+parser code {:
+   Stack<String> classNames = new Stack();
+   // Necessary for generating edge: <className, local variable, ASSOCIATION_DIRECTED>
+
+   boolean onlyAttributeAssociation = false;
+   // if this  value is true then the occurence of a parameter or  local variable
+   // won't cause an edge for an association.
+
+   public void setOnlyAttributeFlag(boolean value) {
+       onlyAttributeAssociation = value;
+   }
+   
+   class Couple {
+      String method, calledBy;
+
+      Couple(String m, String c) {
+         method = m;
+	 calledBy = c;
+      }
+
+      boolean isUnwanted() {
+          // unwanted method for using calledBy attribute are removed.
+	  
+          if (method.contains(".") || calledBy.contains("."))
+	     return true;
+
+          if (method.equals(calledBy))
+	     return true;
+
+          return false;
+      }
+
+      // The implementation of equals and hashCode is necessary to
+      // prevent multiple occurences of an onject in the set.
+      
+      @Override
+      public boolean equals(Object el) {
+          Couple c = (Couple) el;
+
+          return c.method.equals(method) && c.calledBy.equals(calledBy);
+      }
+      
+      @Override
+      public int hashCode() {
+          int hash = 7;
+          hash = 41 * hash + Objects.hashCode(this.method);
+          hash = 41 * hash + Objects.hashCode(this.calledBy);
+	  
+          return hash;
+      }
+   }
+
+   private void remove_UnwantedCouples_for_calledBy() {
+        // The next two for-statement can not be combined.
+	
+        ArrayList <Couple> toBeRemoved = new ArrayList();
+	
+        for (Couple couple: calledByCouples)
+	    if ( couple.isUnwanted() )
+	       toBeRemoved.add(couple);
+
+        for (Couple couple: toBeRemoved)
+	    calledByCouples.remove(couple);
+   }
+
+   private void adjustOperations() {
+       String operation, caller, name, attribute, result;
+       int indexOfName, indexOfQuote, indexOfGt;
+
+       remove_UnwantedCouples_for_calledBy();
+       
+       for (int i = 0; i < operations2D.get(classDepth).size(); i++) {
+           operation = new String(operations2D.get(classDepth).get(i));
+           attribute = new String("");
+
+           indexOfName = operation.indexOf("name=") + 6;
+	   indexOfQuote = operation.indexOf("\"", indexOfName);
+	   name = operation.substring(indexOfName, indexOfQuote);
+
+           for (Couple couple: calledByCouples) {
+	       if (name.equals(couple.method)) {
+	          if (attribute.length() > 0)
+		     attribute += ",";
+		  attribute += couple.calledBy;
+	       }
+	   }
+
+           // <operation .... name="..."> ... by
+	   // <operation .... name="..." calledBy="..."> ....
+           if (attribute.length() > 0) {
+	      attribute = " calledBy=\"" + attribute +"\"";
+	      indexOfGt = operation.indexOf(">");
+
+              result = operation.substring(0, indexOfGt);
+	      result += attribute;
+	      result += operation.substring(indexOfGt);
+
+              operations2D.get(classDepth).set(i, new String(result));
+	   }
+       }
+   }
+
+
+   private void addAttribute(String name, String modifier, String type) {
+      // add attribute to attributes2d if attribute is uniq.
+
+      String attrStr;
+
+      attrStr = "   <attribute name=\"" +  name.trim() + "\" " +
+	             modifier + " type=\"" + type + "\" /> ";
+
+      attributes2D.get(classDepth).add(attrStr);
+   }
+
+
+   private void addEdge(String node1Str, String node2Str, String typeStr) {
+       String str;
+
+       str = "<edge node1=\"" + node1Str + "\" node2=\"" + node2Str +
+	        "\" type=\""  + typeStr + "\"/>";
+
+       if (! edges2D.get(classDepth).contains(str))
+             edges2D.get(classDepth).add(str);
+   }
+   
+   public String ASSOCIATION          = "ASSOCIATION",
+                 ASSOCIATION_DIRECTED = "ASSOCIATION_DIRECTED",
+                 ONETOMANY            = "ONETOMANY",
+                 INHERITANCE          = "INHERITANCE",
+                 DEPENDENCY           = "DEPENDENCY",
+                 ABSTRACT             = "ABSTRACT", 
+                 INTERFACE            = "INTERFACE", 
+                 ABSTRACT_INTERFACE   = "ABSTRACT_INTERFACE",
+		 EMPTY_CALLERNAME     = "--empty--";
+		 
+   ArrayList <ArrayList <String>> attributes2D  = new ArrayList();
+   ArrayList <ArrayList <String>> operations2D  = new ArrayList();
+   ArrayList <ArrayList <String>> edges2D       = new ArrayList();
+   HashSet   <String> dependencies              = new HashSet();
+   HashSet   <Couple> calledByCouples           = new HashSet();
+   String    callerName                         = new String(EMPTY_CALLERNAME);
+   int       classDepth                         = -1;
+
+
+   void createLists() {
+        attributes2D.add(classDepth, new ArrayList());
+	operations2D.add(classDepth, new ArrayList());
+	edges2D.add(classDepth, new ArrayList());
+   }
+
+
+   void removeLists() {
+        classNames.pop();
+        attributes2D.set(classDepth, null);
+	operations2D.set(classDepth, null);
+	edges2D.set(classDepth, null);
+   }
+
+   void processClassInterfaceDeclaration(String ident, String interfaces,
+                                         String classTag) {
+
+        if (interfaces.length() > 0) {
+	   String substring;
+	   int index;
+
+	    while (interfaces.indexOf(",") != -1) {
+	         index = interfaces.indexOf(",");
+	         substring = interfaces.substring(0, index).trim();
+		 addEdge(ident, substring, INHERITANCE);
+	         interfaces = interfaces.substring(index + 1);
+	    }
+
+            addEdge(ident, interfaces, INHERITANCE);
+	    // In Detection_In_Sources it has to be checked whether node2
+	    // is an user made class and not
+	    // e.g. a Java class like an awt.Button.
+	}
+
+        for (String class_name: dependencies) {
+	    if (!class_name.equals("Object") && !class_name.equals(ident)) {
+	       // Notice method clone return Object and a class dependends always on itself.
+	       addEdge(ident, class_name, "DEPENDENCY");
+	    }
+	}
+	// NOTICE: all classes that do not belong to the system, such as String, ArrayList, java.awt.*
+	// have to be filtered out in detection software.
+	//                            ==================
+
+        System.out.println(classTag);
+
+        for (int i = 0;  i < attributes2D.get(classDepth).size(); i++)
+	    System.out.println(attributes2D.get(classDepth).get(i));
+
+        adjustOperations(); // add attribute calledBy="..." 
+        for (int i = 0;  i < operations2D.get(classDepth).size(); i++)
+	    System.out.println(operations2D.get(classDepth).get(i));
+	   
+        System.out.println("</class>\n");
+
+        for(int i = 0; i < edges2D.get(classDepth).size(); i++)
+	   System.out.println(edges2D.get(classDepth).get(i));
+
+        removeLists();
+        classDepth--;
+    }
+ :} 
+
+/* August 1999 - modified by Gerwin Klein <lsf@jflex.de>
+                 to interface with JFlex scanners,
+                 allows empty semicolon in class decls.
+  
+  changed productions:
+
+  class_member_declaration ::=
+                field_declaration
+        |       method_declaration
+    [..]
+        |       interface_declaration
+    | SEMICOLON
+        ;
+
+  interface_member_declaration ::=
+                constant_declaration
+        |       abstract_method_declaration
+        |       class_declaration
+	|       interface_declaration
+        |       SEMICOLON
+        ;
+
+
+
+   1 December 2020 - modified by Ed van Doorn
+   terminals CONST and GOTO are out commented
+
+   type has an extra production rule:
+        |       reference_type LT type_list GT
+
+   type_list ::=
+          type
+        | type_list
+        ;
+
+   class_instance_creation_expression has an extra production rule:
+        NEW class_type:e1 LT class_type_list_opt GT LAREN argument_list_opt RPAREN
+
+  
+   for_statement has an extra production rule:
+         | FOR LPAREN  type name COLON expression RPAREN statement enhancedForStatement
+
+   ENUM terminal
+
+   try catch(E | F | G)
+
+   extends Comparable<String>
+
+   NEW LT class_type GT class_type LPAREN argument_list_opt RPAREN
+
+
+   NOT YET POSSIBLE
+        nm.<String>getKeySet()
+        lambda expressies:  names.forEach(name -> { statement; })
+	
+
+   PROBLEMS:
+          ArrayList<ArrayList<String>> will not be accepted,
+	           because >> is recognized as one token.
+	  ArrayList<ArrayList<String> > will be accepted.
+	  
+*/
+
+
+
+
+
+
+/* Java 1.2 parser for CUP.  
+ * Copyright (C) 1998 C. Scott Ananian <cananian@alumni.princeton.edu>
+ * This program is released under the terms of the GPL; see the file
+ * COPYING for more details.  There is NO WARRANTY on this code.
+ */
+
+/*
+JDK 1.2 Features added:
+  strictfp modifier.
+  explicit_constructor_invocation ::= ...
+        | primary DOT THIS LPAREN argument_list_opt RPAREN SEMICOLON ;
+  field_access ::= ...
+        |       name DOT SUPER DOT IDENTIFIER ;
+  method_invocation ::= ...
+        |       name DOT SUPER DOT IDENTIFIER LPAREN argument_list_opt RPAREN ;
+*/
+
+
+parser code  {:
+  public void report_error(String message, Object info) {
+     StringBuilder m = new StringBuilder("Error ");
+     
+     if (info instanceof java_cup.runtime.Symbol) 
+        m.append( "(" + info.toString() + ")" );
+      
+     m.append(" : " + message);
+   
+     System.out.println(m);
+  }
+   
+  public void report_fatal_error(String message, Object info) {
+     report_error(message, info);
+     throw new RuntimeException("Fatal Syntax Error");
+  }
+:} ;
+
+
+terminal BOOLEAN;        // primitive_type
+terminal BYTE, SHORT, INT, LONG, CHAR; // integral_type
+terminal FLOAT, DOUBLE;  // floating_point_type
+terminal LBRACK, RBRACK; // array_type
+terminal DOT;            // qualified_name
+terminal SEMICOLON, MULT, COMMA, LBRACE, RBRACE, EQ, LPAREN, RPAREN, COLON;
+terminal PACKAGE;        // package_declaration
+terminal IMPORT;         // import_declaration
+terminal PUBLIC, PROTECTED, PRIVATE; // modifier
+terminal STATIC;         // modifier
+terminal ABSTRACT, FINAL, NATIVE, SYNCHRONIZED, TRANSIENT, VOLATILE;
+terminal CLASS;          // class_declaration
+terminal EXTENDS;        // super
+terminal IMPLEMENTS;     // interfaces
+terminal VOID;           // method_header
+terminal THROWS;         // throws
+terminal THIS, SUPER;    // explicit_constructor_invocation
+terminal INTERFACE;      // interface_declaration
+terminal IF, ELSE;       // if_then_statement, if_then_else_statement
+terminal SWITCH;         // switch_statement
+terminal CASE, DEFAULT;  // switch_label
+terminal DO, WHILE;      // while_statement, do_statement
+terminal FOR;            // for_statement
+terminal BREAK;          // break_statement
+terminal CONTINUE;       // continue_statement
+terminal RETURN;         // return_statement
+terminal ASSERT;         
+terminal THROW;          // throw_statement
+terminal TRY;            // try_statement
+terminal CATCH;          // catch_clause
+terminal FINALLY;        // finally
+terminal NEW;            // class_instance_creation_expression
+terminal PLUSPLUS;       // postincrement_expression
+terminal MINUSMINUS;     // postdecrement_expression
+terminal PLUS, MINUS, COMP, NOT, DIV, MOD;
+terminal LSHIFT, RSHIFT, URSHIFT;        // shift_expression
+terminal LT, GT, LTEQ, GTEQ, INSTANCEOF; // relational_expression
+terminal EQEQ, NOTEQ;    // equality_expression
+terminal AND;            // and_expression
+terminal XOR;            // exclusive_or_expression
+terminal OR;             // inclusive_or_expression
+terminal ANDAND;         // conditional_and_expression
+terminal OROR;           // conditional_or_expression
+terminal QUESTION;       // conditional_expression
+terminal MULTEQ, DIVEQ, MODEQ, PLUSEQ, MINUSEQ; // assignment_operator
+terminal LSHIFTEQ, RSHIFTEQ, URSHIFTEQ;         // assignment_operator
+terminal ANDEQ, XOREQ, OREQ;                    // assignment_operator
+terminal ENUM;
+
+terminal java.lang.Number    INTEGER_LITERAL;
+terminal java.lang.Number    FLOATING_POINT_LITERAL;
+terminal java.lang.Boolean   BOOLEAN_LITERAL;
+terminal java.lang.Character CHARACTER_LITERAL;
+terminal java.lang.String    STRING_LITERAL;
+terminal java.lang.String    IDENTIFIER;         // name
+terminal NULL_LITERAL;
+
+// strictfp keyword, new in Java 1.2
+terminal STRICTFP;
+
+// Reserved but unused:
+// terminal CONST, GOTO;
+
+// 19.2) The Syntactic Grammar
+non terminal goal;
+
+// 19.3) Lexical Structure
+non terminal literal;
+
+// 19.4) Types, Values, and Variables
+non terminal String type, primitive_type, numeric_type;
+non terminal String integral_type, floating_point_type;
+non terminal String reference_type;
+non terminal String class_or_interface_type;
+non terminal String class_type, interface_type;
+non terminal String array_type;
+
+// 19.5) Names
+non terminal String name, simple_name, qualified_name;
+
+// 19.6) Packages
+non terminal compilation_unit;
+non terminal package_declaration_opt, package_declaration;
+non terminal import_declarations_opt, import_declarations;
+non terminal type_declarations_opt, type_declarations;
+non terminal import_declaration;
+non terminal single_type_import_declaration;
+non terminal single_static_import_declaration;
+non terminal static_import_on_demand_declaration;
+non terminal type_import_on_demand_declaration;
+non terminal type_declaration;
+
+// 19.7) Productions used only in the LALR(1) grammar
+non terminal String modifiers_opt, modifiers, modifier;
+
+// 19.8.1) Class Declaration
+non terminal String class_declaration, super_cl, super_opt;
+non terminal String interfaces, interfaces_opt, interface_type_list;
+non terminal class_body;
+non terminal class_body_declarations, class_body_declarations_opt;
+non terminal class_body_declaration, class_member_declaration;
+
+// 19.8.2) Field Declarations
+non terminal String field_declaration, variable_declarators,
+    variable_declarator;
+non terminal String variable_declarator_id, variable_initializer;
+
+// 19.8.3) Method Declarations
+non terminal String method_declaration, method_header, method_declarator;
+non terminal String formal_parameter_list_opt, formal_parameter_list;
+non terminal String formal_parameter;
+non terminal throws_opt, throws;
+non terminal class_type_list, class_type_list_opt, method_body;
+
+// 19.8.4) Static Initializers
+non terminal static_initializer;
+
+// 19.8.5) Constructor Declarations
+non terminal String constructor_declaration, constructor_declarator;
+non terminal constructor_body;
+non terminal explicit_constructor_invocation;
+
+// 19.9.1) Interface Declarations
+non terminal String interface_declaration;
+non terminal String extends_interfaces_opt, extends_interfaces;
+non terminal interface_body;
+non terminal interface_member_declarations_opt, interface_member_declarations;
+non terminal interface_member_declaration, constant_declaration;
+non terminal abstract_method_declaration;
+
+// 19.10) Arrays
+non terminal array_initializer;
+non terminal variable_initializers;
+
+// 19.11) Blocks and Statements
+non terminal block;
+non terminal block_statements_opt, block_statements, block_statement;
+non terminal local_variable_declaration_statement, local_variable_declaration;
+non terminal statement, statement_no_short_if;
+non terminal statement_without_trailing_substatement;
+non terminal empty_statement;
+non terminal labeled_statement, labeled_statement_no_short_if;
+non terminal expression_statement, statement_expression;
+non terminal if_then_statement;
+non terminal if_then_else_statement, if_then_else_statement_no_short_if;
+non terminal switch_statement, switch_block;
+non terminal switch_block_statement_groups;
+non terminal switch_block_statement_group;
+non terminal switch_labels, switch_label;
+non terminal while_statement, while_statement_no_short_if;
+non terminal do_statement;
+non terminal for_statement, for_statement_no_short_if;
+non terminal for_init_opt, for_init;
+non terminal for_update_opt, for_update;
+non terminal statement_expression_list;
+non terminal identifier_opt;
+non terminal break_statement, continue_statement;
+non terminal return_statement, throw_statement;
+non terminal assert_statement;
+non terminal synchronized_statement, try_statement;
+non terminal catches_opt, catches, catch_clause;
+non terminal catch_formal_parameter;
+non terminal finally;
+
+// 19.12) Expressions
+non terminal String primary, primary_no_new_array;
+non terminal class_instance_creation_expression;
+non terminal argument_list_opt, argument_list;
+non terminal array_creation_expression;
+non terminal String dim_exprs, dim_expr, dims_opt, dims;
+non terminal String field_access, method_invocation, array_access;
+non terminal postfix_expression;
+non terminal postincrement_expression, postdecrement_expression;
+non terminal unary_expression, unary_expression_not_plus_minus;
+non terminal preincrement_expression, predecrement_expression;
+non terminal cast_expression;
+non terminal multiplicative_expression, additive_expression;
+non terminal shift_expression, relational_expression, equality_expression;
+non terminal and_expression, exclusive_or_expression, inclusive_or_expression;
+non terminal conditional_and_expression, conditional_or_expression;
+non terminal conditional_expression, assignment_expression;
+non terminal assignment;
+non terminal left_hand_side;
+non terminal assignment_operator;
+non terminal expression_opt, expression;
+non terminal constant_expression;
+non terminal type_list;
+non terminal enum_declaration, enum_body, enum_const_list_opt;
+non terminal enum_const_list, enum_const, enum_body_declarations_opt;
+non terminal paren_argument_list_opt, class_body_opt;
+
+start with goal;
+
+// 19.2) The Syntactic Grammar
+goal    ::= compilation_unit
+        ;
+	
+// 19.3) Lexical Structure.
+literal ::=     INTEGER_LITERAL
+        |       FLOATING_POINT_LITERAL
+        |       BOOLEAN_LITERAL
+        |       CHARACTER_LITERAL
+        |       STRING_LITERAL
+        |       NULL_LITERAL
+        ;
+
+// 19.4) Types, Values, and Variables
+type    ::=     primitive_type:e1 {: RESULT = e1; :}
+        |       reference_type:e1 {: RESULT = e1; :}
+        |       reference_type:e1 LT type_list:e2 GT
+                                  {: RESULT = e1 + "&lt;" + e2 + "&gt;"; :}
+        ;
+
+type_list ::=
+          type:e1  {: RESULT = e1; :}
+        | type_list:e1 COMMA type:e2
+                   {: RESULT = e1 + ", " + e2; :}
+        ;
+
+primitive_type ::=
+                numeric_type:e1 {: RESULT = e1;        :}
+        |       BOOLEAN         {: RESULT = "boolean"; :}
+        ;
+        
+numeric_type::= integral_type:e1       {: RESULT = e1; :}
+        |       floating_point_type:e1 {: RESULT = e1; :}
+        ;
+	
+integral_type ::= 
+                BYTE  {: RESULT = "byte";  :}
+        |       SHORT {: RESULT = "short"; :}
+        |       INT   {: RESULT = "int";   :}
+        |       LONG  {: RESULT = "long";  :}
+        |       CHAR  {: RESULT = "char";  :}
+        ;
+        
+floating_point_type ::= 
+                FLOAT {: RESULT = "float";  :}
+        |       DOUBLE{: RESULT = "double"; :}
+        ;
+
+reference_type ::=
+                class_or_interface_type:type_e1 {: RESULT = type_e1;  :}
+        |       array_type:array_e1             {: RESULT = array_e1; :}
+        ;
+        
+class_or_interface_type ::= name:e1             {: RESULT = e1; :};
+
+class_type::=   class_or_interface_type:e1      {: RESULT = e1; :};
+
+interface_type ::= class_or_interface_type:e1   {: RESULT = e1; :};
+
+array_type ::=  primitive_type:e1 dims:e2       {: RESULT = e1 + e2; :}
+        |       name:e1 dims:e2                 {: RESULT = e1 + e2; :}
+        ;
+
+// 19.5) Names
+name    ::=     simple_name:e1     {: RESULT = e1; :}
+        |       qualified_name:e1  {: RESULT = e1; :}
+        ;
+        
+simple_name ::= IDENTIFIER:e1      {: RESULT = e1; :}
+        ;
+        
+qualified_name ::=
+                name:e1 DOT IDENTIFIER:e2 {: RESULT = e1 + "." + e2; :}
+        ;
+
+// 19.6) Packages
+compilation_unit ::=
+                package_declaration_opt 
+                import_declarations_opt
+                type_declarations_opt
+                ;
+                
+package_declaration_opt ::= package_declaration 
+                        | ;
+                          
+import_declarations_opt ::= import_declarations | ;
+
+type_declarations_opt   ::= type_declarations   | ;
+
+import_declarations ::= 
+                import_declaration
+        |       import_declarations import_declaration
+        ;
+        
+type_declarations ::= 
+                type_declaration
+        |       type_declarations type_declaration
+        ;
+        
+package_declaration ::= 
+                PACKAGE name SEMICOLON
+        ;
+        
+import_declaration ::= 
+                single_type_import_declaration
+        |       type_import_on_demand_declaration
+        |       single_static_import_declaration
+        |       static_import_on_demand_declaration
+        ;
+        
+single_type_import_declaration ::= 
+                IMPORT name SEMICOLON
+        ;
+
+single_static_import_declaration ::=
+                IMPORT STATIC name DOT IDENTIFIER SEMICOLON
+        ;
+
+static_import_on_demand_declaration ::=
+                IMPORT STATIC name DOT MULT SEMICOLON
+        ;
+
+type_import_on_demand_declaration ::=
+                IMPORT name DOT MULT SEMICOLON
+        ;
+        
+type_declaration ::=
+                class_declaration     
+        |       interface_declaration 
+        |       enum_declaration
+        |       SEMICOLON
+        ;
+
+// 19.7) Productions used only in the LALR(1) grammar
+modifiers_opt::=                         {: RESULT = ""; :}
+        |       modifiers:e1             {: RESULT = e1; :}
+        ;
+        
+modifiers ::=   modifier:e1              {: RESULT = e1;            :}
+        |       modifiers:e1 modifier:e2 {: RESULT = e1 + " " + e2; :}
+        ;
+        
+modifier ::=
+           PUBLIC       {: RESULT = "modifier=\"public\"";   :}
+         | PROTECTED    {: RESULT = "";                      :}  // neglected      
+         | PRIVATE      {: RESULT = "modifier=\"private\"";  :}            
+         | STATIC       {: RESULT = "isStatic=\"true\" ";    :}                
+         | ABSTRACT     {: RESULT = "isAbstract=\"true\"";   :}                 
+         | FINAL        {: RESULT = "";                      :}               
+         | NATIVE       {: RESULT = "";                      :}                         
+         | SYNCHRONIZED {: RESULT = "";                      :}                      
+         | TRANSIENT    {: RESULT = "";                      :}                          
+         | VOLATILE     {: RESULT = "";                      :}                                
+         | STRICTFP     {: RESULT = "";                      :}
+                // note that semantic analysis must check whether the
+                // context of the modifier allows strictfp.
+        ;
+
+// 19.8) Classes
+
+// 19.8.1) Class Declaration:
+class_declaration ::= 
+        modifiers_opt:modifiers CLASS
+	    IDENTIFIER:ident
+	    {:
+               classNames.push(ident);
+	       classDepth++ ;
+	       createLists();
+	    :}
+	    super_opt:superClass interfaces_opt:interfaces class_body
+	{:
+	      String classTag;
+
+              classTag = "<class name=" + "\"" + ident + "\"";
+
+              if (modifiers.length() != 0)
+	         classTag += " " + modifiers;
+	      classTag += ">";
+
+              if (((String)superClass).length() > 0)
+	         addEdge(ident, superClass, INHERITANCE);
+
+              processClassInterfaceDeclaration(ident, interfaces, classTag);
+	:}
+        ;
+        
+super_cl ::=    EXTENDS class_type:e1 {: RESULT = e1; :}
+        ;
+        
+super_opt ::=   {: RESULT = ""; :} 
+        |       super_cl:e1 {:  RESULT = e1; :}
+        ;
+        
+interfaces ::=  IMPLEMENTS interface_type_list:e1 {: RESULT = e1; :}
+        ;
+        
+interfaces_opt::=
+                               {: RESULT = ""; :}
+        |       interfaces:e1  {: RESULT = e1; :}
+        ;
+        
+interface_type_list ::=
+                interface_type:e1                               {: RESULT = e1;                         :}
+        |       interface_type:e1 LT type_list GT               {: RESULT = e1 + " <not implemented> "; :}
+        |       interface_type_list:e1 COMMA interface_type:e2  {: RESULT = e1 + "," + e2;              :}
+        ;
+        
+class_body::=   LBRACE class_body_declarations_opt RBRACE 
+        ;
+        
+class_body_declarations_opt ::= 
+        |       class_body_declarations
+        ;
+        
+class_body_declarations ::= 
+                class_body_declaration
+        |       class_body_declarations class_body_declaration
+        ;
+        
+class_body_declaration ::=
+                class_member_declaration
+        |       static_initializer
+        |       constructor_declaration:e1
+	        {:
+	            operations2D.get(classDepth).add(0, e1);
+		:}
+        |       block
+        ;
+        
+class_member_declaration ::=
+                field_declaration 
+        |       method_declaration 
+        |       class_declaration
+        |       enum_declaration
+	        {:
+		    System.out.println("Inner enum declaratie is niet verwerkt.");
+	        :}
+		
+        |       interface_declaration
+	        {:
+		    System.out.println("Inner interface declaratie is niet verwerkt.");
+		:}
+		
+        |       SEMICOLON
+        ;
+
+// 19.8.2) Field Declarations
+field_declaration ::= 
+        modifiers_opt:modifier type:type_v variable_declarators:attrNames SEMICOLON
+	{:
+	    String substring;
+	    int index;
+
+	    while (attrNames.indexOf(",") != -1) {
+	       index = attrNames.indexOf(",");
+	       substring = attrNames.substring(0, index).trim();
+	       addAttribute(substring, modifier, type_v);
+
+               attrNames = attrNames.substring(index + 1);
+	    }
+
+            addAttribute(attrNames, modifier, type_v);
+	:}
+        ;
+
+variable_declarators ::=
+                variable_declarator:e1                                 {: RESULT = e1;             :}
+        |       variable_declarators:e1 COMMA variable_declarator:e2   {: RESULT = e1 + ", " + e2; :}
+        ;
+        
+variable_declarator ::=
+                variable_declarator_id:e1                         {: RESULT = e1; :}
+        |       variable_declarator_id:e1 EQ variable_initializer {: RESULT = e1; :}
+        ;
+        
+variable_declarator_id ::=
+                IDENTIFIER:e1                           {: RESULT = e1;        :}
+        |       variable_declarator_id:e1 LBRACK RBRACK {: RESULT = e1 + "[]"; :}
+        ;
+variable_initializer ::=
+                expression
+        |       array_initializer
+        ;
+
+// 19.8.3) Method Declarations
+method_declaration ::=
+                method_header:e1 method_body
+		{: /*
+		    operations2D.get(classDepth).add("   <operation " + e1 +
+		                     "   </operation>");
+		    */
+		    callerName = new String (EMPTY_CALLERNAME);
+		   
+		:}
+        ;
+        
+method_header ::=
+                modifiers_opt:e1 type:e2 method_declarator:e3 throws_opt
+                    {:
+		        String returnType;
+
+                        returnType = (((String)e2).length() == 0) ? " " :
+			               " returnType=\"" + e2 + "\" ";
+				       
+		        RESULT = e1 + returnType + e3;
+			operations2D.get(classDepth).add("   <operation " +
+			                 RESULT + "   </operation>");
+		    :}
+		    
+        |       modifiers_opt:e1 VOID method_declarator:e3 throws_opt
+                    {:
+		       RESULT = e1 + " " + e3;
+		       operations2D.get(classDepth).add("   <operation " +
+		                        RESULT + "   </operation>");
+		    :}
+        ;
+        
+method_declarator ::=
+                IDENTIFIER:e1 LPAREN formal_parameter_list_opt:paramList RPAREN
+                   {:
+		      RESULT = "name=\"" + e1 + "\">\n" + paramList;
+		      callerName = e1;
+		   :}
+		   
+        |       method_declarator:e1 LBRACK RBRACK // deprecated
+                   {: RESULT = e1 + "([] method_declarator deprecated)"; :}
+        // be careful; the above production also allows 'void foo() []'
+        ;
+        
+formal_parameter_list_opt ::=
+                {: RESULT = ""; :}
+        |       formal_parameter_list:e1 {: RESULT = e1; :}
+        ;
+        
+formal_parameter_list ::=  
+                formal_parameter:e1                                {: RESULT = e1;      :}
+        |       formal_parameter_list:e1 COMMA formal_parameter:e2 {: RESULT = e1 + e2; :}
+        ;
+        
+formal_parameter ::=
+                type:e1 variable_declarator_id:e2
+		     {:
+		        RESULT = "      <parameter name=\"" + e2 +
+		                 "\" type=\"" + e1 + "\" />\n";
+				 
+		        if (!onlyAttributeAssociation) { 
+			   addEdge(classNames.peek(), e1, ASSOCIATION_DIRECTED);
+			   // According to Yann-Gael Gueheneuc 2004
+			   }
+		     :}
+        |       FINAL type:e1 variable_declarator_id:e2
+	             {:
+		        RESULT = "      <parameter name=\"" + e2 +
+		                 "\" type=\"" + e1 + "\" />\n";
+				 
+			if (!onlyAttributeAssociation)  	 
+		           addEdge(classNames.peek(), e1, ASSOCIATION_DIRECTED);
+			   // According to Yann-Gael Gueheneuc 2004
+		     :}
+        ;
+        
+throws_opt ::=  
+        |       throws
+        ;
+        
+throws ::=      THROWS class_type_list
+        ;
+        
+class_type_list ::=
+                class_type:e1 {: RESULT = e1;             :}
+        |       QUESTION      {: RESULT = "?";            :}
+        |       class_type_list:e1 COMMA class_type:e2
+	                      {: RESULT = e1 + ", " + e2; :}
+        ;
+
+class_type_list_opt ::=
+        |       class_type_list
+        ;
+        
+method_body ::= block
+        |       SEMICOLON
+        ;
+
+// 19.8.4) Static Initializers
+static_initializer ::=
+                STATIC block
+        ;
+
+// 19.8.5) Constructor Declarations
+constructor_declaration ::=
+                modifiers_opt:e1 constructor_declarator:e2 throws_opt
+		    constructor_body
+			{:
+			    String delen[] = e2.split("\n");
+
+                            if (e1.length() > 0) {
+                               delen[0] += " " + e1;
+			    }
+			    delen[0] += ">";
+			    
+			    
+			    RESULT = String.join("\n", delen);
+
+			    callerName = new String(EMPTY_CALLERNAME);
+			:}
+        ;
+        
+constructor_declarator ::=
+                simple_name:e1 LPAREN formal_parameter_list_opt:e2  RPAREN
+		     {:
+		         callerName = e1;
+		         RESULT = "   <operation name=\"" +  e1 + "\"\n"  +
+			          e2 + "   </operation>"; 
+		     :}
+        ;
+        
+constructor_body ::=
+                LBRACE explicit_constructor_invocation
+                       block_statements RBRACE
+        |       LBRACE explicit_constructor_invocation RBRACE
+        |       LBRACE block_statements RBRACE
+        |       LBRACE RBRACE
+        ;
+        
+explicit_constructor_invocation ::=
+                THIS  LPAREN argument_list_opt RPAREN SEMICOLON
+        |       SUPER LPAREN argument_list_opt RPAREN SEMICOLON
+        |       primary DOT THIS  LPAREN argument_list_opt RPAREN SEMICOLON
+        |       primary DOT SUPER LPAREN argument_list_opt RPAREN SEMICOLON
+        ;
+
+// 19.9) Interfaces
+
+// 19.9.1) Interface Declarations
+interface_declaration ::=
+                modifiers_opt INTERFACE IDENTIFIER:ident
+		{:
+                   classNames.push(ident);
+		   classDepth++;
+	           createLists();
+		:}
+		extends_interfaces_opt:interfaces interface_body
+        	{:
+		   /* corresponds to class_declaration */
+		
+	           String classTag;
+	           
+                   classTag ="<class name=" + "\"" + ident +
+		             "\" type=\"" + INTERFACE + "\">";
+
+                   processClassInterfaceDeclaration(ident, interfaces, classTag);
+		:}
+        ;
+        
+extends_interfaces_opt ::=
+                {: RESULT = ""; :}
+        |       extends_interfaces:e1
+	        {: RESULT = e1; :}
+		      
+        ;
+        
+extends_interfaces ::=
+                EXTENDS interface_type:e1 {: RESULT = e1; :}
+        |       extends_interfaces:e1 COMMA interface_type:e2
+	                {:
+			    RESULT = e1 + ", " + e2;
+			 :}
+        ;
+        
+interface_body ::=
+                LBRACE interface_member_declarations_opt RBRACE
+        ;
+        
+interface_member_declarations_opt ::=
+        |       interface_member_declarations
+        ;
+        
+interface_member_declarations ::=
+                interface_member_declaration
+        |       interface_member_declarations interface_member_declaration
+        ;
+        
+interface_member_declaration ::=
+                constant_declaration
+        |       abstract_method_declaration
+        |       class_declaration
+	              {: System.out.println("interface_member_declaration 1 not implemented"); :}
+        |       interface_declaration
+	              {: System.out.println("interface_member_declaration 2 not implemented"); :}
+        |       SEMICOLON
+        ;
+        
+constant_declaration ::=
+                field_declaration 
+        ;
+        
+abstract_method_declaration ::=
+                method_header SEMICOLON 
+        ;
+
+// 19.10) Arrays
+array_initializer ::=
+                LBRACE variable_initializers COMMA RBRACE
+        |       LBRACE variable_initializers RBRACE
+        |       LBRACE COMMA RBRACE
+        |       LBRACE RBRACE
+        ;
+        
+variable_initializers ::=
+                variable_initializer
+        |       variable_initializers COMMA variable_initializer
+        ;
+
+// 19.11) Blocks and Statements
+block ::=       LBRACE block_statements_opt RBRACE
+        ;
+        
+block_statements_opt ::=
+        |       block_statements
+        ;
+block_statements ::=
+                block_statement
+        |       block_statements block_statement
+        ;
+        
+block_statement ::=
+                local_variable_declaration_statement
+        |       statement
+        |       class_declaration
+        |       interface_declaration
+        ;
+        
+local_variable_declaration_statement ::=
+                local_variable_declaration SEMICOLON
+        ;
+        
+local_variable_declaration ::=
+                type:e1 variable_declarators:e2
+		{:
+		    if (!onlyAttributeAssociation)  
+		       addEdge(classNames.peek(), e1, ASSOCIATION_DIRECTED);
+		:}
+        |       FINAL type variable_declarators
+        ;
+        
+statement ::=   statement_without_trailing_substatement
+        |       labeled_statement
+        |       if_then_statement
+        |       if_then_else_statement
+        |       while_statement
+        |       for_statement
+        |       assert_statement
+        ;
+        
+statement_no_short_if ::=
+                statement_without_trailing_substatement
+        |       labeled_statement_no_short_if
+        |       if_then_else_statement_no_short_if
+        |       while_statement_no_short_if
+        |       for_statement_no_short_if
+        ;
+        
+statement_without_trailing_substatement ::=
+                block
+        |       empty_statement
+        |       expression_statement
+        |       switch_statement
+        |       do_statement
+        |       break_statement
+        |       continue_statement
+        |       return_statement
+        |       synchronized_statement
+        |       throw_statement
+        |       try_statement
+        ;
+        
+empty_statement ::=
+                SEMICOLON
+        ;
+        
+labeled_statement ::=
+                IDENTIFIER COLON statement
+        ;
+        
+labeled_statement_no_short_if ::=
+                IDENTIFIER COLON statement_no_short_if
+        ;
+        
+expression_statement ::=
+                statement_expression SEMICOLON
+        ;
+        
+statement_expression ::=
+                assignment                           
+        |       preincrement_expression               
+        |       predecrement_expression              
+        |       postincrement_expression
+        |       postdecrement_expression             
+        |       method_invocation               
+        |       class_instance_creation_expression   
+        ;
+        
+if_then_statement ::=
+                IF LPAREN expression RPAREN statement
+        ;
+        
+if_then_else_statement ::=
+                IF LPAREN expression RPAREN statement_no_short_if 
+                          ELSE statement
+        ;
+        
+if_then_else_statement_no_short_if ::=
+                IF LPAREN expression RPAREN statement_no_short_if
+                          ELSE statement_no_short_if
+        ;
+        
+switch_statement ::=
+                SWITCH LPAREN expression RPAREN switch_block
+        ;
+        
+switch_block ::=
+                LBRACE switch_block_statement_groups switch_labels RBRACE
+        |       LBRACE switch_block_statement_groups RBRACE
+        |       LBRACE switch_labels RBRACE
+        |       LBRACE RBRACE
+        ;
+        
+switch_block_statement_groups ::=
+                switch_block_statement_group
+        |       switch_block_statement_groups switch_block_statement_group
+        ;
+        
+switch_block_statement_group ::=
+                switch_labels block_statements
+        ;
+        
+switch_labels ::=
+                switch_label
+        |       switch_labels switch_label
+        ;
+        
+switch_label ::=
+                CASE constant_expression COLON
+        |       DEFAULT COLON
+        ;
+
+while_statement ::=
+                WHILE LPAREN expression RPAREN statement
+        ;
+        
+while_statement_no_short_if ::=
+                WHILE LPAREN expression RPAREN statement_no_short_if
+        ;
+        
+do_statement ::=
+                DO statement WHILE LPAREN expression RPAREN SEMICOLON
+        ;
+        
+for_statement ::=
+                FOR LPAREN for_init_opt SEMICOLON expression_opt SEMICOLON
+                    for_update_opt RPAREN statement
+              | FOR LPAREN  type name COLON expression RPAREN statement 
+        ;
+        
+for_statement_no_short_if ::=
+                FOR LPAREN for_init_opt SEMICOLON expression_opt SEMICOLON
+                    for_update_opt RPAREN statement_no_short_if
+        ;
+        
+for_init_opt ::=
+        |       for_init
+        ;
+        
+for_init ::=    statement_expression_list
+        |       local_variable_declaration
+        ;
+        
+for_update_opt ::=
+        |       for_update
+        ;
+        
+for_update ::=  statement_expression_list
+        ;
+        
+statement_expression_list ::=
+                statement_expression
+        |       statement_expression_list COMMA statement_expression
+        ;
+
+identifier_opt ::= 
+        |       IDENTIFIER
+        ;
+
+break_statement ::=
+                BREAK identifier_opt SEMICOLON
+        ;
+
+continue_statement ::=
+                CONTINUE identifier_opt SEMICOLON
+        ;
+        
+return_statement ::=
+                RETURN expression_opt SEMICOLON
+        ;
+
+assert_statement
+        ::=     ASSERT expression  SEMICOLON
+        |       ASSERT expression COLON expression SEMICOLON
+        ;
+
+        
+throw_statement ::=
+                THROW expression SEMICOLON
+        ;
+        
+synchronized_statement ::=
+                SYNCHRONIZED LPAREN expression RPAREN block
+        ;
+        
+try_statement ::=
+                TRY block catches
+        |       TRY block catches_opt finally
+        ;
+        
+catches_opt ::=
+        |       catches
+        ;
+        
+catches ::=     catch_clause         
+        |       catches catch_clause 
+        ;
+        
+catch_clause ::=
+                CATCH LPAREN catch_formal_parameter IDENTIFIER dims_opt RPAREN block 
+        ;
+
+catch_formal_parameter ::=
+                class_type
+        |       catch_formal_parameter OR class_type
+        ;                       
+        
+finally ::=     FINALLY block
+        ;
+
+// 19.12) Expressions
+primary ::=     primary_no_new_array:e1       {: RESULT = e1; :}
+        |       array_creation_expression:e1  {: RESULT = "array_creation ... "; :}
+        ;
+        
+primary_no_new_array ::=
+                literal                              {: RESULT = "literal ... ";         :}
+        |       THIS                                 {: RESULT = "this";                 :}
+        |       LPAREN expression RPAREN             {: RESULT = "( expression .... )";  :}
+        |       class_instance_creation_expression   {: RESULT = "class_instance... ";   :}
+        |       field_access:e1                      {: RESULT = "field_access = " + e1; :}
+        |       method_invocation:e1                 {: RESULT = e1;                     :}
+        |       array_access                         {: RESULT = "array_acces ... ";     :}
+        |       primitive_type DOT CLASS             {: RESULT = "primitive_type ... ";  :}
+        |       VOID DOT CLASS                       {: RESULT = "void.class";           :}
+        |       array_type DOT CLASS:e1              {: RESULT = "array_type ... ";      :}
+        |       name:e1 DOT CLASS                    {: RESULT = e1 + ".class";          :}
+        |       name:e1 DOT THIS                     {: RESULT = e1 + ".this";           :}
+        ;
+        
+class_instance_creation_expression ::=
+                NEW class_type:e1 LT class_type_list_opt GT LPAREN argument_list_opt RPAREN
+	|       NEW LT class_type GT class_type LPAREN argument_list_opt RPAREN  /* Added by Ed */
+        |       NEW class_type:e1 LPAREN argument_list_opt RPAREN
+	            {:
+		         dependencies.add(e1);
+	            :}
+		    
+        |       NEW class_type:e1 LPAREN argument_list_opt RPAREN class_body
+	            {:
+		         dependencies.add(e1);
+		    :}
+		    
+        |       primary DOT NEW IDENTIFIER
+                        LPAREN argument_list_opt RPAREN
+        |       primary DOT NEW IDENTIFIER
+                        LPAREN argument_list_opt RPAREN class_body
+        ;
+        
+argument_list_opt ::=
+        |       argument_list
+        ;
+        
+argument_list ::=
+                expression
+        |       argument_list COMMA expression
+        ;
+        
+array_creation_expression ::=
+                NEW primitive_type dim_exprs dims_opt
+        |       NEW class_or_interface_type  dim_exprs dims_opt
+        |       NEW primitive_type dims array_initializer
+        |       NEW class_or_interface_type  dims array_initializer
+        ;
+        
+dim_exprs ::=   dim_expr    
+        |       dim_exprs dim_expr
+        ;
+        
+dim_expr ::=    LBRACK expression RBRACK
+        ;
+        
+dims_opt ::=            {: RESULT = ""; :}
+        |       dims:e1 {: RESULT = e1; :}
+        ;
+        
+dims ::=        LBRACK RBRACK          {: RESULT = "[]";      :}     
+        |       dims:e1 LBRACK RBRACK  {: RESULT = e1 + "[]"; :}
+        ;
+        
+field_access ::=
+                primary:e1 DOT IDENTIFIER:e2        {: RESULT = e1 + "." + e2;       :}
+        |       SUPER DOT IDENTIFIER:e1             {: RESULT = "super." + e1;       :}
+        |       name:e1 DOT SUPER DOT IDENTIFIER:e2 {: RESULT = e1 + ".super." + e2; :}
+        ;
+        
+method_invocation ::=
+                name:e1 LPAREN argument_list_opt RPAREN
+                    {:
+		        RESULT = e1 + "( xxx2 )";
+			calledByCouples.add(new Couple(e1, callerName));
+		    :}
+		    
+        |       primary:e1 DOT IDENTIFIER:e2 LPAREN argument_list_opt RPAREN
+                    {:
+		        RESULT = "";
+		    :}
+        |       SUPER DOT IDENTIFIER:e1 LPAREN argument_list_opt RPAREN
+                    {:
+		        RESULT = "";
+		    :}
+        |       name:e1 DOT SUPER DOT IDENTIFIER:e2 LPAREN argument_list_opt RPAREN
+                    {:
+		        RESULT = "";
+		    :}
+        ;
+        
+array_access ::=
+                name LBRACK expression RBRACK
+        |       primary_no_new_array LBRACK expression RBRACK
+        ;
+        
+postfix_expression ::=
+                primary
+        |       name
+        |       postincrement_expression
+        |       postdecrement_expression
+        ;
+        
+postincrement_expression ::=
+                postfix_expression PLUSPLUS
+        ;
+        
+postdecrement_expression ::=
+                postfix_expression MINUSMINUS
+        ;
+        
+unary_expression ::=
+                preincrement_expression
+        |       predecrement_expression
+        |       PLUS unary_expression
+        |       MINUS unary_expression
+        |       unary_expression_not_plus_minus
+        ;
+        
+preincrement_expression ::=
+                PLUSPLUS unary_expression
+        ;
+        
+predecrement_expression ::=
+                MINUSMINUS unary_expression
+        ;
+        
+unary_expression_not_plus_minus ::=
+                postfix_expression
+        |       COMP unary_expression
+        |       NOT unary_expression
+        |       cast_expression
+        ;
+        
+cast_expression ::=
+                LPAREN primitive_type dims_opt RPAREN unary_expression
+        |       LPAREN expression RPAREN unary_expression_not_plus_minus
+        |       LPAREN name dims RPAREN unary_expression_not_plus_minus
+        ;
+        
+multiplicative_expression ::=
+                unary_expression
+        |       multiplicative_expression MULT unary_expression
+        |       multiplicative_expression DIV unary_expression
+        |       multiplicative_expression MOD unary_expression
+        ;
+        
+additive_expression ::=
+                multiplicative_expression
+        |       additive_expression PLUS multiplicative_expression
+        |       additive_expression MINUS multiplicative_expression
+        ;
+        
+shift_expression ::=
+                additive_expression
+        |       shift_expression LSHIFT additive_expression
+        |       shift_expression RSHIFT additive_expression
+        |       shift_expression URSHIFT additive_expression
+        ;
+        
+relational_expression ::=
+                shift_expression
+        |       relational_expression LT shift_expression
+        |       relational_expression GT shift_expression
+        |       relational_expression LTEQ shift_expression
+        |       relational_expression GTEQ shift_expression
+        |       relational_expression INSTANCEOF reference_type
+        ;
+        
+equality_expression ::=
+                relational_expression
+        |       equality_expression EQEQ relational_expression
+        |       equality_expression NOTEQ relational_expression
+        ;
+        
+and_expression ::=
+                equality_expression
+        |       and_expression AND equality_expression
+        ;
+        
+exclusive_or_expression ::=
+                and_expression
+        |       exclusive_or_expression XOR and_expression
+        ;
+        
+inclusive_or_expression ::=
+                exclusive_or_expression
+        |       inclusive_or_expression OR exclusive_or_expression
+        ;
+        
+conditional_and_expression ::=
+                inclusive_or_expression
+        |       conditional_and_expression ANDAND inclusive_or_expression
+        ;
+        
+conditional_or_expression ::=
+                conditional_and_expression
+        |       conditional_or_expression OROR conditional_and_expression
+        ;
+        
+conditional_expression ::=
+                conditional_or_expression
+        |       conditional_or_expression QUESTION expression 
+                        COLON conditional_expression
+        ;
+        
+assignment_expression ::=
+                conditional_expression
+        |       assignment
+        ;
+        
+assignment ::=  left_hand_side assignment_operator assignment_expression
+        ;
+        
+left_hand_side ::=
+                name
+        |       field_access
+        |       array_access
+        ;
+        
+assignment_operator ::=
+                EQ
+        |       MULTEQ
+        |       DIVEQ
+        |       MODEQ
+        |       PLUSEQ
+        |       MINUSEQ
+        |       LSHIFTEQ
+        |       RSHIFTEQ
+        |       URSHIFTEQ
+        |       ANDEQ
+        |       XOREQ
+        |       OREQ
+        ;
+        
+expression_opt ::=
+        |       expression
+        ;
+        
+expression ::=  assignment_expression
+        ;
+        
+constant_expression ::=
+                expression
+        ;
+
+// new
+
+enum_declaration 
+        ::=     modifiers_opt ENUM IDENTIFIER:ident interfaces_opt:interfaces
+	        {:
+		   classDepth++;
+		   createLists();
+		:} enum_body
+		{:
+		   /* corresponds to class_declaration */
+		
+	           String classTag;
+	           
+                   classTag ="<class name=" + "\"" + ident + "\">";
+
+                   processClassInterfaceDeclaration(ident, interfaces, classTag);
+		:}
+        ;
+
+
+enum_body       
+        ::=     LBRACE enum_const_list_opt enum_body_declarations_opt RBRACE
+        ;
+
+enum_const_list_opt 
+        ::=
+        |	enum_const_list
+        ;
+
+enum_const_list
+        ::=     enum_const
+        |       enum_const_list COMMA enum_const
+        ;
+
+enum_const 
+        ::=
+		IDENTIFIER paren_argument_list_opt class_body_opt
+        ;
+
+enum_body_declarations_opt
+        ::=
+        |	SEMICOLON class_body_declarations_opt
+	        {:
+		   System.out.println("enum_body_declaration_opt is geparst.");
+		:}	   
+        ;
+
+class_body_opt
+        ::=
+        |	class_body
+        ;
+
+paren_argument_list_opt
+        ::=
+        |	LPAREN argument_list_opt RPAREN
+        ;

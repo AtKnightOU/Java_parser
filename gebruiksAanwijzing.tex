@@ -1,0 +1,87 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage[latin1]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{url}
+
+\begin{document}
+	\begin{center}
+		\textbf{Top Directory: cupJFlex/java1.2Parser}
+	\end{center}
+
+\begin{flushleft}
+\begin{tabular} {l p{12cm}}
+Directory: & src/main/cup \\
+File:      & java12.cup \\   
+Inhoud:    & mijn grammar en actions voor Java \\
+\ \\
+Directory: & src/main/jflex  \\
+File:      & java.flex  \\  
+Inhoud:    & mijn lex-file voor java \\
+\ \\
+Directory: & cupJFlex/java1.2Parse \\
+File :     & Make \\
+Doel:      & Roept jflex en cup aan en genereert sym, lexer en parser in out/genfiles. \\
+           & Maakt gebruik van common/Makefile.inc \\
+\ \\
+Directory: & cupJFlex/java1.2Parse \\
+File:      & runStandaardTest  \\  
+Doel:      & Gaat na of grammar en lex-file nog correcte uitvoer kan genereren voor 
+             Test.java == Dashboard. \\
+           & \\
+\ \\
+Directory: & cupJFlex/java1.2Parse \\
+File:      & genereerTemplates  \\  
+Doel:      & Genereert voor \'e\'en (Java) file the body van een template file: \\
+		   & class name, attributen, operations, parameters, edges. \\
+Aanroep:   & genereerTemplates Java file \\
+\textbf{to do}:   & Script schrijven waarmee de uitvoer aangepast wordt. \newline
+                    Toevoegen: $<$templates$>$ $<$template name="Sourcecode"$>$ ... $<$/template$>$ $<$/templates$>$. \newline
+                    Voor $<$/template$>$ moeten alle $<$edges$>$ komen te staan. \newline
+                    \textbf{edges voor associaties en dependencies genereren.}
+                    Nog uitzoeken: lokatie van repeating group en peninsula.
+\ \\
+Directory: & cupJFlex/java1.2Parse \\
+File:      & genereer\dots\dots Templates  \\  
+Doel:      & Genereert voor Java-files in een Netbeans-projectde body van een template file: \\
+& class name, attributen, operations, parameters, edges. \\
+Aanroep:   & genereer\dots\dots Templates \\
+\textbf{to do}:   & Script schrijven waarmee de uitvoerfile aangepast wordt. \newline
+Toevoegen: $<$templates$>$ $<$template name="Sourcecode"$>$ ... $<$/template$>$ $<$/templates$>$. \newline
+Voor $<$/template$>$ moeten alle $<$edges$>$ komen te staan. \newline
+\textbf{edges voor associaties en dependencies genereren.}
+Nog uitzoeken: lokatie van repeating group en peninsula.
+\ \\
+\ \\
+Websites:  & \url{http://www2.cs.tum.edu/projects/cup/}  \newline  \url{https://www.jflex.de} \\
+\end{tabular}
+\end{flushleft}
+\pagebreak
+\begin{center}
+	\textbf{Top Directory: NetBeansProjects/DP\_detection\_in\_sources}
+\end{center}
+
+\begin{flushleft}
+\begin{tabular} {l p{12cm}}
+Directory:   & \\
+File:        & invoerSysteem.xml \newline 
+               Door aanroep van \emph{genereerTemplates}, zie boven,  kan voor elke Java-file
+               kan deze template file worden samengesteld. \\
+Netbeans:    & args[0] is ingesteld door: \newline
+               Rechtermuisklik op \emph{DP\_detection\_in\_sources},
+               klik op \emph{Set Configuration}, klik op  \emph{Customize}. \\
+\ \\
+Directory:   & \\
+File:        & templates.xml  \newline
+               Bevat de beschrijving van 25 DP's m.b.v. repeating groups, peninsula. \newline
+               De design patterns Facade en Factory Method komen beide twee keer voor. \\
+\ \\            
+Package:     & DP\_Templates\_Def\_Parser \\
+alle files   & Alle Java sources worden gebruikt door de SAX-parser om een XML-file met \newline
+               hetzij  GoF\-templates  hetzij invoerSysteem.xml te parsen. \newline
+               Het result van de parsing wordt bewaard in Java files van het package 
+               \emph{DP\_Templates\_Def}.
+\end{tabular}
+\end{flushleft}
+\end{document}
