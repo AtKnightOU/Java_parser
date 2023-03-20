@@ -9,7 +9,7 @@ Er wordt gebruikt gemaakt van:
 | cup      |CUP v0.11a beta 20060608 | http://www2.cs.tum.edu/projects/cup/ |
 
 
-Deze software is  alleen noodzakelijk als de grammatica van Java wordt aangepast.
+Deze software is  alleen noodzakelijk als de grammatica en/of semantische actie van Java worden aangepast.
 
 De grammatica van Java is gebaseerd op java12.cup.                                  
 Zie: https://github.com/joewalnes/idea-community/tree/master/tools/lexer/jflex-1.4/examples/java
