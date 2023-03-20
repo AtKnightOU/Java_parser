@@ -7,6 +7,8 @@ Er wordt gebruikt gemaakt van:
 |----------|--------|-------------------------------------------------------|
 | jflex    | 1.9    |https://www.jflex.de/                                  |
 | cup      |CUP v0.11a beta 20060608 | http://www2.cs.tum.edu/projects/cup/ |
+
+
 Deze software is  alleen noodzakelijk als de grammatica van Java wordt aangepast.
 
 De grammatica van Java is gebaseerd op java12.cup.                                  
