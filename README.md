@@ -16,4 +16,4 @@ Zie: https://github.com/joewalnes/idea-community/tree/master/tools/lexer/jflex-1
 \
 De grammatica is aangepast en opgenomen in de code.
 
-De code in deze repository werkt samen met de code in *AtKnight/Detection_Design_Patterns*.
+De code in deze repository werkt samen met de code in *https://github.com/AtKnightOU/Detection_Design_Patterns*.
