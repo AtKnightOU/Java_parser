@@ -12,7 +12,7 @@ Er wordt gebruikt gemaakt van:
 Deze software is alleen noodzakelijk als de grammatica van Java en/of semantische acties worden aangepast.
 
 De grammatica van Java is gebaseerd op java12.cup.                                  
-Zie: https://github.com/joewalnes/idea-community/tree/master/tools/lexer/jflex-1.4/examples/java
+Zie: https://github.com/joewalnes/idea-community/tree/master/tools/lexer/jflex-1.4/examples/java\
 De grammatica is aangepast en opgenomen in de code.
 
 De code in deze repository werkt samen met de code in *AtKnight/Detection_Design_Patterns*.
