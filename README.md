@@ -20,3 +20,4 @@ De code in deze repository werkt samen met de code in
 \
 *https://github.com/AtKnightOU/Detection_Design_Patterns*.
 \
+Wordt vervolgd.
