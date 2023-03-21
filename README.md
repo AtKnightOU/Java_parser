@@ -13,7 +13,7 @@ Als je werkt onder:
 
 
 
-##Wordt vervolgd....
+## Wordt vervolgd....
 
 Er wordt gebruikt gemaakt van:
 | Software | Versie | url                                                   |
