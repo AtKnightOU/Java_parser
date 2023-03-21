@@ -5,7 +5,7 @@ download dan alleen de directory
 *DetectDP_HHS*.
 \
 
-Als je werkt onder:
+Als gewerkt wodt onder:
 1. Linux   
    pas dan de file *startProcessJavaFiles.sh* aan.
    
@@ -47,6 +47,7 @@ De grammatica is aangepast en opgenomen in de code.
 \
 Zie *src/main/cup*
 
+### Doelen van software en samenwerking
 Het bleek onder Windows niet mogelijk om de uitvoer van de parser door *ParserController* 
 \
 m.b.v. een redirect naar een file te schrijven.
@@ -58,8 +59,19 @@ geschikt voor *Detection_Design_Patterns*.
 \
 Zie onder.
 \
+
 De code in deze repository werkt samen met de code in 
 \
 *https://github.com/AtKnightOU/Detection_Design_Patterns*.
 \
-Wordt vervolgd.
+Deze software leest de definties van design patterns die
+beschreven zijn in *templates.xml*.
+Tevens worden de gegevens van de classes en interfaces  van de Java sources
+gelezen in *inputSystem.xml.
+\
+
+De  classes van de herkende design patterns worden het scherm getoond.
+De file *DetectionDP.log* bevat behalve deze beschrijving 
+\
+ook de redenen waarom classes geen deel uitmaken van een design pattern.
+
