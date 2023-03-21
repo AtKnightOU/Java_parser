@@ -11,6 +11,7 @@ Als gewerkt wordt onder:
    
    Wijzig alleen  *JAVA=/home/ed/bin/java*.
 2. Windows
+\
    pas dan de file *startProcessJavaFiles.bat* aan.
    \
    Wijzig indien nodig of gewenst, zoals in de code is aangegeven:
@@ -74,7 +75,8 @@ Tevens worden de gegevens van de classes en interfaces van de Java sources
 gelezen in *inputSystem.xml*.
 
 De  classes van de herkende design patterns worden op het scherm getoond.
-De file *DetectionDP.log* bevat behalve deze beschrijving 
 \
-ook de redenen waarom classes geen deel uitmaken van een design pattern.
+De file *DetectionDP.log* bevat behalve deze beschrijving ook de
+\
+redenen waarom classes geen deel uitmaken van een design pattern.
 
