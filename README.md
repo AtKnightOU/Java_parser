@@ -4,8 +4,7 @@ Als je alleen de software wilt uitvoeren, download dan alleen de directory
 *DetectDP_HHS*.
 \
 Als je werkt onder:
-1. Linux 
-   
+1. Linux   
    pas dan de file *startProcessJavaFiles.sh* aan.
    \
    Wijzig alleen  *JAVA=/home/ed/bin/java*
