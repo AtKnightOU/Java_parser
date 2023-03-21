@@ -1,8 +1,10 @@
 # Java_parser
 
-Als je alleen de software wilt uitvoeren, download dan alleen de directory 
+### Als je alleen de software wilt uitvoeren,
+download dan alleen de directory 
 *DetectDP_HHS*.
 \
+
 Als je werkt onder:
 1. Linux   
    pas dan de file *startProcessJavaFiles.sh* aan.
@@ -25,7 +27,7 @@ ook de redenen waarom classes geen deel uitmaken van een design pattern.
 ***
 
 
-## Wordt vervolgd....
+## Als je de software wilt aanpassen
 
 Er wordt gebruikt gemaakt van:
 | Software | Versie | url                                                   |
