@@ -46,8 +46,12 @@ Zie: https://github.com/joewalnes/idea-community/tree/master/tools/lexer/jflex-1
 De grammatica is aangepast en opgenomen in de code.
 Zie *src/main/cup*
 \
+
 *src/main/java/TransformOutputParser.java* maakt na het parsen de uitvoer geschikt voor 
-*Detection_Design_Patterns* . Zie onder.
+*Detection_Design_Patterns*. 
+Zie onder.
+\
+
 
 De code in deze repository werkt samen met de code in 
 \
