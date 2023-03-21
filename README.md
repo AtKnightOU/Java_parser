@@ -66,9 +66,9 @@ De code in deze repository werkt samen met de code in
 \
 Deze software leest de definties van design patterns die
 beschreven zijn in *templates.xml*.
-Tevens worden de gegevens van de classes en interfaces  van de Java sources
-gelezen in *inputSystem.xml.
 \
+Tevens worden de gegevens van de classes en interfaces  van de Java sources
+gelezen in *inputSystem.xml*.
 
 De  classes van de herkende design patterns worden het scherm getoond.
 De file *DetectionDP.log* bevat behalve deze beschrijving 
