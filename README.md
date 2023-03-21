@@ -9,7 +9,20 @@ Als je werkt onder:
    \
    Wijzig alleen  *JAVA=/home/ed/bin/java*
 2. Windows
+   pas dan de file *startProcessJavaFiles.bat* aan.
+   \
+   Wijzig indien nodig of gewenst, zoals in de code is aangegeven:
+   
+   a. "JAVA=C:\Program Files\Common Files\Oracle\Java\javapath\java"
+   
+   b. "BATDIR=C:\Users\Eigenaar\Desktop\DetectDP_HHS"
+   
+   c. en eventueel "UITVOERDIR=%BATDIR%"
+   
+De file *DetectionDP.log* bevat behalve de beschrijving van de herkende design patterns
+ook de redenen waarom classes geen deel uitmaken van een design pattern.
 
+***
 
 
 ## Wordt vervolgd....
