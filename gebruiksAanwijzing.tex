@@ -36,25 +36,16 @@ File:      & genereerTemplates  \\
 Doel:      & Genereert voor \'e\'en (Java) file the body van een template file: \\
 		   & class name, attributen, operations, parameters, edges. \\
 Aanroep:   & genereerTemplates Java file \\
-\textbf{to do}:   & Script schrijven waarmee de uitvoer aangepast wordt. \newline
-                    Toevoegen: $<$templates$>$ $<$template name="Sourcecode"$>$ ... $<$/template$>$ $<$/templates$>$. \newline
-                    Voor $<$/template$>$ moeten alle $<$edges$>$ komen te staan. \newline
-                    \textbf{edges voor associaties en dependencies genereren.}
-                    Nog uitzoeken: lokatie van repeating group en peninsula.
 \ \\
 Directory: & cupJFlex/java1.2Parse \\
 File:      & genereer\dots\dots Templates  \\  
-Doel:      & Genereert voor Java-files in een Netbeans-projectde body van een template file: \\
-& class name, attributen, operations, parameters, edges. \\
+Doel:      & Genereert voor Java-files in een Netbeans-project 
+             de body van een template file: \\
+           & class name, attributen, operations, parameters, edges. \\
 Aanroep:   & genereer\dots\dots Templates \\
-\textbf{to do}:   & Script schrijven waarmee de uitvoerfile aangepast wordt. \newline
-Toevoegen: $<$templates$>$ $<$template name="Sourcecode"$>$ ... $<$/template$>$ $<$/templates$>$. \newline
-Voor $<$/template$>$ moeten alle $<$edges$>$ komen te staan. \newline
-\textbf{edges voor associaties en dependencies genereren.}
-Nog uitzoeken: lokatie van repeating group en peninsula.
 \ \\
-\ \\
-Websites:  & \url{http://www2.cs.tum.edu/projects/cup/}  \newline  \url{https://www.jflex.de} \\
+Websites:  & \url{http://www2.cs.tum.edu/projects/cup/}  \newline
+\url{https://www.jflex.de} \\
 \end{tabular}
 \end{flushleft}
 \pagebreak
@@ -65,9 +56,9 @@ Websites:  & \url{http://www2.cs.tum.edu/projects/cup/}  \newline  \url{https://
 \begin{flushleft}
 \begin{tabular} {l p{12cm}}
 Directory:   & \\
-File:        & invoerSysteem.xml \newline 
+File:        & inputSystem.xml \newline 
                Door aanroep van \emph{genereerTemplates}, zie boven,  kan voor elke Java-file
-               kan deze template file worden samengesteld. \\
+               kan deze template file worden gegenereerd. \\
 Netbeans:    & args[0] is ingesteld door: \newline
                Rechtermuisklik op \emph{DP\_detection\_in\_sources},
                klik op \emph{Set Configuration}, klik op  \emph{Customize}. \\
@@ -79,7 +70,7 @@ File:        & templates.xml  \newline
 \ \\            
 Package:     & DP\_Templates\_Def\_Parser \\
 alle files   & Alle Java sources worden gebruikt door de SAX-parser om een XML-file met \newline
-               hetzij  GoF\-templates  hetzij invoerSysteem.xml te parsen. \newline
+               hetzij  GoF\-templates  hetzij inputSysteem.xml te parsen. \newline
                Het result van de parsing wordt bewaard in Java files van het package 
                \emph{DP\_Templates\_Def}.
 \end{tabular}
