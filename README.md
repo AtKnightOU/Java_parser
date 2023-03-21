@@ -34,7 +34,6 @@ Er wordt gebruikt gemaakt van:
 
 | Software | Versie | url                                                   |
 |----------|--------|-------------------------------------------------------|
-
 | jflex    | 1.9    |https://www.jflex.de/                                  |
 | cup      |CUP v0.11a beta 20060608 | http://www2.cs.tum.edu/projects/cup/ |
 
@@ -45,6 +44,7 @@ De grammatica van Java is gebaseerd op java12.cup.
 Zie: https://github.com/joewalnes/idea-community/tree/master/tools/lexer/jflex-1.4/examples/java
 \
 De grammatica is aangepast en opgenomen in de code.
+Zie src/main/cup
 
 De code in deze repository werkt samen met de code in 
 \
