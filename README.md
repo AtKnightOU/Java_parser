@@ -44,15 +44,20 @@ De grammatica van Java is gebaseerd op java12.cup.
 Zie: https://github.com/joewalnes/idea-community/tree/master/tools/lexer/jflex-1.4/examples/java
 \
 De grammatica is aangepast en opgenomen in de code.
-Zie *src/main/cup*
 \
+Zie *src/main/cup*
 
-*src/main/java/TransformOutputParser.java* maakt na het parsen de uitvoer geschikt voor 
-*Detection_Design_Patterns*. 
+Het bleek onder Windows niet mogelijk om de uitvoer van de parser door *ParserController* 
+\
+m.b.v. een redirect naar een file te schrijven.
+\
+De uitvoer van de parser wordt gelezen door *ReadStdin* en geschreven in een file.
+
+*src/main/java/TransformOutputParser.java* maakt na het parsen de uitvoer van *ReadStdin*
+geschikt voor *Detection_Design_Patterns*. 
+\
 Zie onder.
 \
-
-
 De code in deze repository werkt samen met de code in 
 \
 *https://github.com/AtKnightOU/Detection_Design_Patterns*.
