@@ -29,9 +29,12 @@ ook de redenen waarom classes geen deel uitmaken van een design pattern.
 
 ## Als je de software wilt aanpassen
 
+
 Er wordt gebruikt gemaakt van:
+
 | Software | Versie | url                                                   |
-|----------|--------|startProcessJavaFiles.sh-------------------------------------------------------|
+|----------|--------|-------------------------------------------------------|
+
 | jflex    | 1.9    |https://www.jflex.de/                                  |
 | cup      |CUP v0.11a beta 20060608 | http://www2.cs.tum.edu/projects/cup/ |
 
