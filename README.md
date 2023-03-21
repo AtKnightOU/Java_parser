@@ -5,13 +5,15 @@ Als je alleen de software wilt uitvoeren, download dan alleen de directory
 \
 Als je werkt onder:
 1. Linux 
-   \ 
+   
    pas dan de file *startProcessJavaFiles.sh* aan.
    \
    Wijzig alleen  *JAVA=/home/ed/bin/java*
 2. Windows
-    
 
+
+
+##Wordt vervolgd....
 
 Er wordt gebruikt gemaakt van:
 | Software | Versie | url                                                   |
