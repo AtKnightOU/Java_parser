@@ -7,7 +7,7 @@ Download  alleen de directory
 
 Als gewerkt wordt onder:
 1. Linux   
-   pas dande file *startProcessJavaFiles.sh* aan.
+   pas dan de file *startProcessJavaFiles.sh* aan.
    
    Wijzig alleen  *JAVA=/home/ed/bin/java*.
 2. Windows
